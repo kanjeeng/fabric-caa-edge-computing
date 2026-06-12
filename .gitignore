@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+**/vendor/
+npm-debug.log
+yarn-error.log
+
+# Python / CAA Controller
+__pycache__/
+*.pyc
+venv/
+
+# Hyperledger Fabric (SANGAT PENTING: Cegah Private Key Bocor!)
+**/crypto-config/
+fabric-network/channel-artifacts/
+build/
+*.tar.gz
+*.block
+*.tx
+
+# Log files & OS generated
+*.log
+minikube-mount.log
+.DS_Store

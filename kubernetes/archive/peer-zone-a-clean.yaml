@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fabric-peer
+    zone: zone-a
+  name: peer-zone-a
+  namespace: parking-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fabric-peer
+      zone: zone-a
+  template:
+    metadata:
+      labels:
+        app: fabric-peer
+        zone: zone-a
+    spec:
+      initContainers:
+      - args:
+        - |
+          mkdir -p /var/hyperledger/peer-data/msp/admincerts /var/hyperledger/peer-data/msp/cacerts /var/hyperledger/peer-data/msp/keystore /var/hyperledger/peer-data/msp/signcerts /var/hyperledger/peer-data/msp/tlscacerts /var/hyperledger/peer-data/tls /var/hyperledger/peer-data/production
+          cp -Lrv /msp-ro/admincert.pem /var/hyperledger/peer-data/msp/admincerts/
+          cp -Lrv /msp-ro/cacert.pem /var/hyperledger/peer-data/msp/cacerts/
+          mv /var/hyperledger/peer-data/msp/cacerts/cacert.pem /var/hyperledger/peer-data/msp/cacerts/ca.zone-a.parking.com-cert.pem
+          cp -Lrv /msp-ro/tlscacert.pem /var/hyperledger/peer-data/msp/tlscacerts/
+          cp -Lrv /msp-ro/config.yaml /var/hyperledger/peer-data/msp/config.yaml
+          cp -Lrv /msp-ro/keystore.pem /var/hyperledger/peer-data/msp/keystore/
+          cp -Lrv /msp-ro/signcert.pem /var/hyperledger/peer-data/msp/signcerts/
+          cp -Lrv /tls-ro/* /var/hyperledger/peer-data/tls/
+        command:
+        - sh
+        - -c
+        image: busybox:1.35
+        name: copy-materials
+        volumeMounts:
+        - mountPath: /msp-ro
+          name: zone-a-msp-secret
+        - mountPath: /tls-ro
+          name: zone-a-tls-secret
+        - mountPath: /var/hyperledger/peer-data
+          name: peer-data-volume
+      containers:
+      - args:
+        - |
+          echo "$ORDERER_SERVICE_HOST orderer.orderer.parking.com" >> /etc/hosts
+          peer node start
+        command:
+        - /bin/sh
+        - -c
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: CORE_PEER_ID
+          value: peer0.zone-a.parking.com
+        - name: CORE_PEER_ADDRESS
+          value: peer-zone-a:7051
+        - name: CORE_PEER_LISTENADDRESS
+          value: 0.0.0.0:7051
+        - name: CORE_PEER_CHAINCODEADDRESS
+          value: $(MY_POD_IP):7052
+        - name: CORE_PEER_CHAINCODELISTENADDRESS
+          value: 0.0.0.0:7052
+        - name: CORE_PEER_GOSSIP_EXTERNALENDPOINT
+          value: peer-zone-a:7051
+        - name: CORE_PEER_LOCALMSPID
+          value: ZoneAMSP
+        - name: CORE_PEER_MSPCONFIGPATH
+          value: /var/hyperledger/peer-data/msp
+        - name: CORE_PEER_TLS_ENABLED
+          value: "true"
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /var/hyperledger/peer-data/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /var/hyperledger/peer-data/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /var/hyperledger/peer-data/tls/ca.crt
+        - name: CORE_LEDGER_STATE_STATEDATABASE
+          value: goleveldb
+        - name: CORE_OPERATIONS_LISTENADDRESS
+          value: 0.0.0.0:9443
+        - name: CORE_METRICS_PROVIDER
+          value: prometheus
+        - name: CORE_OPERATIONS_TLS_ENABLED
+          value: "false"
+        - name: FABRIC_LOGGING_SPEC
+          value: INFO
+        - name: CORE_VM_ENDPOINT
+          value: unix:///var/run/docker.sock
+        - name: CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE
+          value: parking-fabric
+        image: hyperledger/fabric-peer:2.5
+        name: peer
+        ports:
+        - containerPort: 7051
+          name: grpc
+        - containerPort: 9443
+          name: operations
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /var/hyperledger/peer-data/msp
+          name: peer-data-volume
+          subPath: msp
+        - mountPath: /var/hyperledger/peer-data/tls
+          name: peer-data-volume
+          subPath: tls
+        - mountPath: /var/hyperledger/production
+          name: peer-data-volume
+          subPath: production
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+      volumes:
+      - name: zone-a-msp-secret
+        secret:
+          defaultMode: 420
+          secretName: zone-a-msp
+      - name: zone-a-tls-secret
+        secret:
+          defaultMode: 420
+          secretName: zone-a-tls
+      - emptyDir: {}
+        name: peer-data-volume
+      - hostPath:
+          path: /var/run/docker.sock
+        name: docker-sock

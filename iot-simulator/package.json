@@ -1,0 +1,11 @@
+{
+  "name": "parking-iot-simulator",
+  "version": "1.0.0",
+  "main": "simulator.js",
+  "scripts": {
+    "start": "node simulator.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.3.0"
+  }
+}

@@ -1,0 +1,59 @@
+# /home/cana/Desktop/parking-blockchain-lite/kubernetes/99-admin-cli.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin-cli
+  namespace: parking-fabric
+spec:
+  initContainers:
+  - name: setup-msp
+    image: busybox:1.35
+    command: ['sh', '-c']
+    args:
+      - |
+        mkdir -p /writable-msp/admincerts /writable-msp/cacerts /writable-msp/keystore /writable-msp/signcerts /writable-msp/tlscacerts
+        cp /msp-ro/admincert.pem /writable-msp/admincerts/
+        cp /msp-ro/cacert.pem /writable-msp/cacerts/ca.zone-a.parking.com-cert.pem
+        cp /msp-ro/keystore.pem /writable-msp/keystore/
+        cp /msp-ro/signcert.pem /writable-msp/signcerts/
+        cp /msp-ro/tlscacert.pem /writable-msp/tlscacerts/
+        cp /msp-ro/config.yaml /writable-msp/config.yaml
+    volumeMounts:
+    - name: zone-a-admin-msp-secret
+      mountPath: /msp-ro
+    - name: msp-writable
+      mountPath: /writable-msp
+  containers:
+  - name: main
+    image: hyperledger/fabric-tools:2.5
+    command: ["/bin/bash", "-c", "sleep 999999"]
+    env:
+    - name: CORE_PEER_TLS_ENABLED
+      value: "true"
+    - name: CORE_PEER_LOCALMSPID
+      value: "ZoneAMSP"
+    - name: CORE_PEER_MSPCONFIGPATH
+      value: "/etc/hyperledger/msp"
+    - name: CORE_PEER_ADDRESS
+      value: "peer-zone-a:7051"
+    # --- TLS ROOT CERT ---
+    - name: CORE_PEER_TLS_ROOTCERT_FILE
+      value: "/etc/hyperledger/msp/tlscacerts/tlscacert.pem"
+    # ---------------------
+    volumeMounts:
+    - name: msp-writable
+      mountPath: /etc/hyperledger/msp
+    - name: channel-artifacts
+      mountPath: /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    # Mount Orderer CA untuk komunikasi TLS ke Orderer
+    - name: orderer-ca
+      mountPath: /etc/hyperledger/orderer-tls
+  volumes:
+  - name: zone-a-admin-msp-secret
+    secret: { secretName: zone-a-admin }
+  - name: channel-artifacts
+    configMap: { name: channel-artifacts }
+  - name: msp-writable
+    emptyDir: {}
+  - name: orderer-ca
+    secret: { secretName: orderer1-msp-secret } # FIX: Menggunakan secret Orderer 1 yang valid

@@ -1,0 +1,237 @@
+# configtx.yaml yang Benar (Paten - 3 Orderer Raft)
+# Lokasi: fabric-network/config/configtx.yaml
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+################################################################################
+#
+#   SECTION: Organizations
+#
+################################################################################
+Organizations:
+    - &OrdererOrg
+        Name: OrdererOrg
+        ID: OrdererMSP
+        # Path relatif dari 'configtx.yaml' (di 'config/') ke 'crypto-config/'
+        MSPDir: ../crypto-config/ordererOrganizations/parking.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererMSP.admin')"
+
+    - &ZoneA
+        Name: ZoneAMSP
+        ID: ZoneAMSP
+        MSPDir: ../crypto-config/peerOrganizations/zone-a.parking.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('ZoneAMSP.admin', 'ZoneAMSP.peer', 'ZoneAMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('ZoneAMSP.admin', 'ZoneAMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('ZoneAMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('ZoneAMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.zone-a.parking.com
+              Port: 7051
+
+    - &ZoneB
+        Name: ZoneBMSP
+        ID: ZoneBMSP
+        MSPDir: ../crypto-config/peerOrganizations/zone-b.parking.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('ZoneBMSP.admin', 'ZoneBMSP.peer', 'ZoneBMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('ZoneBMSP.admin', 'ZoneBMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('ZoneBMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('ZoneBMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.zone-b.parking.com
+              Port: 7051
+
+    - &ZoneC
+        Name: ZoneCMSP
+        ID: ZoneCMSP
+        MSPDir: ../crypto-config/peerOrganizations/zone-c.parking.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('ZoneCMSP.admin', 'ZoneCMSP.peer', 'ZoneCMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('ZoneCMSP.admin', 'ZoneCMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('ZoneCMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('ZoneCMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.zone-c.parking.com
+              Port: 7051
+
+################################################################################
+#
+#   SECTION: Capabilities
+#
+################################################################################
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_5: true # Menggunakan V2_5 untuk fitur modern
+
+################################################################################
+#
+#   SECTION: Application
+#
+################################################################################
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "ANY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "ANY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+################################################################################
+#
+#   SECTION: Orderer
+#
+################################################################################
+Orderer: &OrdererDefaults
+    OrdererType: etcdraft
+    Addresses:
+        - orderer1.parking.com:7050
+        - orderer2.parking.com:7050
+        - orderer3.parking.com:7050
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 100
+        AbsoluteMaxBytes: 10 MB
+        PreferredMaxBytes: 512 KB
+    EtcdRaft:
+        Consenters:
+            - Host: orderer1.parking.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/parking.com/orderers/orderer1.parking.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/parking.com/orderers/orderer1.parking.com/tls/server.crt
+            - Host: orderer2.parking.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/parking.com/orderers/orderer2.parking.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/parking.com/orderers/orderer2.parking.com/tls/server.crt
+            - Host: orderer3.parking.com
+              Port: 7050
+              ClientTLSCert: ../crypto-config/ordererOrganizations/parking.com/orderers/orderer3.parking.com/tls/server.crt
+              ServerTLSCert: ../crypto-config/ordererOrganizations/parking.com/orderers/orderer3.parking.com/tls/server.crt
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+    Capabilities:
+        <<: *OrdererCapabilities
+
+################################################################################
+#
+#   CHANNEL
+#
+################################################################################
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+################################################################################
+#
+#   Profile
+#
+################################################################################
+Profiles:
+    # Profil Genesis Block (Sistem)
+    ThreeZonesOrdererGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            ParkingConsortium:
+                Organizations:
+                    - *ZoneA
+                    - *ZoneB
+                    - *ZoneC
+    
+    # Profil untuk Channel Utama (Multi-Org)
+    ParkingZoneAChannel:
+        Consortium: ParkingConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *ZoneA
+                - *ZoneB
+                - *ZoneC
+            Capabilities:
+                <<: *ApplicationCapabilities
+            # KUNCI KEBERHASILAN:
+            # Tidak ada lagi blok "Policies" di sini. 
+            # Karena dihapus, Fabric akan otomatis menggunakan aturan 
+            # "MAJORITY" dari ApplicationDefaults di atas, 
+            # sehingga Zone B dan Zone C punya hak yang sama dengan Zone A!

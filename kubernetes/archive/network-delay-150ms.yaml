@@ -1,0 +1,15 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: regional-latency-150ms
+  namespace: parking-fabric
+spec:
+  action: delay
+  mode: all
+  selector:
+    labelSelectors:
+      "app": "peer" # Memberikan latensi ke semua Pod Peer
+  delay:
+    latency: "150ms"
+    correlation: "100"
+    jitter: "10ms"
