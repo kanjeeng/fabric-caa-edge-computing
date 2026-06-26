@@ -1,7 +1,7 @@
 
 # 🚀 Panduan Setup & Load Testing Parking Blockchain (CAA)
 
-![Arsitektur CAA](./docs/arsitektur.svg)
+![Arsitektur CAA](./arsitektur.svg)
 
 Panduan ini berisi langkah-langkah dari nol (*from scratch*) untuk menjalankan arsitektur Hyperledger Fabric, Kubernetes, CAA Controller, dan mengeksekusi skenario *Stress Test*.
 
